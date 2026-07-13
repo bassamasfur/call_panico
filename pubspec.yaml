@@ -41,6 +41,7 @@ dependencies:
     path: local_plugins/background_stt
   telephony:
     path: local_plugins/telephony
+  flutter_contacts: ^2.1.0
 
 dev_dependencies:
   flutter_test:

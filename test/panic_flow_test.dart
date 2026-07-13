@@ -52,7 +52,7 @@ class FakeSmsService extends PanicSmsService {
   bool sent = false;
 
   @override
-  Future<bool> sendHelpSms() async {
+  Future<bool> sendHelpSms({required List<String> destinationNumbers}) async {
     sent = true;
     return true;
   }
@@ -81,7 +81,11 @@ void main() {
         'protectionEnabled': false,
         'voiceDetected': false,
         'emergencyPhrase': 'llama ya',
-        'sosContacts': ['Ana - 555 0101', 'Luis - 555 0102'],
+        'sosContacts': [
+          'Andrea - +56911111111',
+          'Luis - +56922222222',
+          'Marta - +56933333333',
+        ],
         'alertHistory': [],
       });
 

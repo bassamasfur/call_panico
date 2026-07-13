@@ -14,6 +14,7 @@ class ConfigurationPage extends StatefulWidget {
 
 class _ConfigurationPageState extends State<ConfigurationPage> {
   late final TextEditingController _phraseController;
+  late final TextEditingController _extraPhraseController;
 
   PanicHomeController get controller => widget.controller;
 
@@ -21,11 +22,13 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
   void initState() {
     super.initState();
     _phraseController = TextEditingController(text: controller.emergencyPhrase);
+    _extraPhraseController = TextEditingController();
   }
 
   @override
   void dispose() {
     _phraseController.dispose();
+    _extraPhraseController.dispose();
     super.dispose();
   }
 
@@ -61,16 +64,75 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                       const SizedBox(height: 16),
                     ],
                     _SectionCard(
-                      title: 'Frase de emergencia',
+                      title: 'Frases de activación',
                       icon: Icons.record_voice_over_rounded,
                       child: TextField(
                         controller: _phraseController,
                         onChanged: controller.updateEmergencyPhrase,
                         decoration: const InputDecoration(
-                          labelText: 'Frase clave',
-                          hintText: 'Escribe la frase que disparará la alerta',
+                          labelText: 'Frase principal',
+                          hintText: 'Escribe la frase principal de activación',
                           border: OutlineInputBorder(),
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Agregar otra frase',
+                      icon: Icons.add_comment_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
+                            controller: _extraPhraseController,
+                            decoration: const InputDecoration(
+                              labelText: 'Frase alternativa',
+                              hintText: 'Ejemplo: necesito ayuda',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.tonalIcon(
+                            onPressed: () {
+                              controller.addEmergencyPhrase(
+                                _extraPhraseController.text,
+                              );
+                              _extraPhraseController.clear();
+                            },
+                            icon: const Icon(Icons.add_rounded),
+                            label: const Text('Guardar frase'),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'La primera frase es la principal. Puedes guardar varias alternativas para que el sistema reconozca cualquiera de ellas.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF6F7E95),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: 'Frases guardadas',
+                      icon: Icons.local_offer_rounded,
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (
+                            var index = 0;
+                            index < controller.emergencyPhrases.length;
+                            index++
+                          )
+                            InputChip(
+                              label: Text(controller.emergencyPhrases[index]),
+                              onDeleted: controller.emergencyPhrases.length == 1
+                                  ? null
+                                  : () =>
+                                        controller.removeEmergencyPhrase(index),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),

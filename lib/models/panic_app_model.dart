@@ -1,8 +1,15 @@
 class PanicAppModel {
+  static const List<String> defaultSosContacts = [
+    'Ana - 555 0101',
+    'Luis - 555 0102',
+    'Marta - 555 0103',
+  ];
+
   const PanicAppModel({
     required this.protectionEnabled,
     required this.voiceDetected,
     required this.emergencyPhrase,
+    required this.emergencyPhrases,
     required this.sosContacts,
     required this.alertHistory,
   });
@@ -12,7 +19,8 @@ class PanicAppModel {
       protectionEnabled: false,
       voiceDetected: false,
       emergencyPhrase: 'ayuda ahora',
-      sosContacts: ['Ana - 555 0101', 'Luis - 555 0102', 'Marta - 555 0103'],
+      emergencyPhrases: ['ayuda ahora', 'necesito ayuda'],
+      sosContacts: defaultSosContacts,
       alertHistory: [],
     );
   }
@@ -20,6 +28,7 @@ class PanicAppModel {
   final bool protectionEnabled;
   final bool voiceDetected;
   final String emergencyPhrase;
+  final List<String> emergencyPhrases;
   final List<String> sosContacts;
   final List<String> alertHistory;
 
@@ -27,6 +36,7 @@ class PanicAppModel {
     bool? protectionEnabled,
     bool? voiceDetected,
     String? emergencyPhrase,
+    List<String>? emergencyPhrases,
     List<String>? sosContacts,
     List<String>? alertHistory,
   }) {
@@ -34,6 +44,7 @@ class PanicAppModel {
       protectionEnabled: protectionEnabled ?? this.protectionEnabled,
       voiceDetected: voiceDetected ?? this.voiceDetected,
       emergencyPhrase: emergencyPhrase ?? this.emergencyPhrase,
+      emergencyPhrases: emergencyPhrases ?? this.emergencyPhrases,
       sosContacts: sosContacts ?? this.sosContacts,
       alertHistory: alertHistory ?? this.alertHistory,
     );

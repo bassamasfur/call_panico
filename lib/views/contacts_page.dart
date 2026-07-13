@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../controllers/panic_home_controller.dart';
 
@@ -13,6 +14,7 @@ class ContactsPage extends StatefulWidget {
 
 class _ContactsPageState extends State<ContactsPage> {
   late final List<TextEditingController> _contactControllers;
+  bool _isImporting = false;
 
   PanicHomeController get controller => widget.controller;
 
@@ -30,6 +32,234 @@ class _ContactsPageState extends State<ContactsPage> {
       contactController.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _importFromAgenda() async {
+    final permissionStatus = await FlutterContacts.permissions.request(
+      PermissionType.read,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (permissionStatus != PermissionStatus.granted &&
+        permissionStatus != PermissionStatus.limited) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Necesitas permiso de contactos para importar.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isImporting = true;
+    });
+
+    try {
+      final contacts = await FlutterContacts.getAll(
+        properties: {ContactProperty.name, ContactProperty.phone},
+      );
+
+      final agendaContacts = contacts
+          .where((contact) => contact.phones.isNotEmpty)
+          .map((contact) {
+            final name = _contactName(contact);
+            final phone = _contactPhone(contact);
+            return _AgendaContact(name: name, phone: phone);
+          })
+          .where((contact) => contact.phone.isNotEmpty)
+          .toList(growable: false);
+
+      if (agendaContacts.isEmpty) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se encontraron contactos con teléfono.'),
+          ),
+        );
+        return;
+      }
+
+      final selectedContacts = await showModalBottomSheet<List<_AgendaContact>>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (sheetContext) {
+          final sheetTheme = Theme.of(sheetContext);
+          final selectedIndexes = <int>{};
+
+          return StatefulBuilder(
+            builder: (context, setSheetState) {
+              return Container(
+                margin: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD0D8E7),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.contacts_rounded,
+                            color: Color(0xFF2F6CE5),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Elige 3 contactos de la agenda',
+                              style: sheetTheme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF132B4A),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${selectedIndexes.length}/3',
+                            style: sheetTheme.textTheme.labelLarge?.copyWith(
+                              color: const Color(0xFF5E6B80),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 420),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: agendaContacts.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final contact = agendaContacts[index];
+                            final selected = selectedIndexes.contains(index);
+
+                            return CheckboxListTile(
+                              value: selected,
+                              onChanged: (checked) {
+                                setSheetState(() {
+                                  if (checked == true) {
+                                    if (selectedIndexes.length >= 3) {
+                                      ScaffoldMessenger.of(
+                                        sheetContext,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Solo puedes elegir 3 contactos.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    selectedIndexes.add(index);
+                                  } else {
+                                    selectedIndexes.remove(index);
+                                  }
+                                });
+                              },
+                              title: Text(contact.name),
+                              subtitle: Text(contact.phone),
+                              controlAffinity: ListTileControlAffinity.leading,
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.of(sheetContext).pop(),
+                              child: const Text('Cancelar'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: selectedIndexes.length == 3
+                                  ? () {
+                                      final selectedList = selectedIndexes
+                                          .map((index) => agendaContacts[index])
+                                          .toList(growable: false);
+                                      Navigator.of(
+                                        sheetContext,
+                                      ).pop(selectedList);
+                                    }
+                                  : null,
+                              child: const Text('Usar 3 contactos'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
+
+      if (!mounted || selectedContacts == null) {
+        return;
+      }
+
+      final formattedContacts = selectedContacts
+          .take(3)
+          .map((contact) => '${contact.name} - ${contact.phone}')
+          .toList(growable: false);
+
+      controller.replaceContacts(formattedContacts);
+      for (
+        var index = 0;
+        index < formattedContacts.length && index < _contactControllers.length;
+        index++
+      ) {
+        _contactControllers[index].text = formattedContacts[index];
+      }
+      setState(() {});
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isImporting = false;
+        });
+      }
+    }
+  }
+
+  String _contactName(Contact contact) {
+    final name = contact.displayName?.trim();
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
+
+    final firstName = contact.name?.first?.trim();
+    final lastName = contact.name?.last?.trim();
+    final combined = [
+      firstName,
+      lastName,
+    ].whereType<String>().where((part) => part.isNotEmpty).join(' ');
+    return combined.isNotEmpty ? combined : 'Sin nombre';
+  }
+
+  String _contactPhone(Contact contact) {
+    final phone = contact.phones.first;
+    return (phone.normalizedNumber ?? phone.number).trim();
   }
 
   @override
@@ -103,6 +333,20 @@ class _ContactsPageState extends State<ContactsPage> {
                   ),
                 ),
                 const SizedBox(height: 18),
+                FilledButton.tonalIcon(
+                  onPressed: _isImporting ? null : _importFromAgenda,
+                  icon: _isImporting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.import_contacts_rounded),
+                  label: Text(
+                    _isImporting ? 'Importando...' : 'Importar desde agenda',
+                  ),
+                ),
+                const SizedBox(height: 12),
                 _SectionCard(
                   title: 'Lista de contactos',
                   icon: Icons.contacts_rounded,
@@ -142,6 +386,13 @@ class _ContactsPageState extends State<ContactsPage> {
       ),
     );
   }
+}
+
+class _AgendaContact {
+  const _AgendaContact({required this.name, required this.phone});
+
+  final String name;
+  final String phone;
 }
 
 class _SectionCard extends StatelessWidget {

@@ -16,7 +16,7 @@ class PanicAlertService {
         : contactList.join(', ');
 
     return 'ALERTA SOS: frase "$emergencyPhrase" detectada. '
-        'SMS enviado a $emergencyPhoneNumber con el texto "${emergencySmsMessage}". '
+        'SMS enviado a $emergencyPhoneNumber con el texto "$emergencySmsMessage". '
         'Contactos: $contactText. Hora: ${_formatTimestamp(effectiveTimestamp)}.';
   }
 
