@@ -293,8 +293,10 @@ class PanicHomeController extends ChangeNotifier {
 
     final destinationNumbers = _buildSmsDestinationNumbers();
     if (destinationNumbers.isEmpty) {
+      _state = _state.copyWith(voiceDetected: true);
       _statusMessage =
-          'Configura 3 contactos reales desde la agenda antes de enviar SMS.';
+          'Frase detectada, pero no hay contactos reales configurados.';
+      unawaited(_storageService.saveState(_state));
       notifyListeners();
       return;
     }
@@ -341,32 +343,25 @@ class PanicHomeController extends ChangeNotifier {
   }
 
   List<String> _buildSmsDestinationNumbers() {
-    if (!_hasThreeRealContacts()) {
-      return const [];
-    }
-
-    final destinationNumbers = <String>[
-      PanicAlertService.emergencyPhoneNumber,
-      ..._state.sosContacts.map(_extractPhoneNumber),
-    ];
-
-    return destinationNumbers.where((number) => number.isNotEmpty).toList();
-  }
-
-  bool _hasThreeRealContacts() {
     final defaults = PanicAppModel.defaultSosContacts
         .map(_normalizeText)
         .toSet();
 
-    if (_state.sosContacts.length < 3) {
-      return false;
+    final destinationNumbers = <String>[PanicAlertService.emergencyPhoneNumber];
+
+    for (final contact in _state.sosContacts.take(3)) {
+      final normalizedContact = _normalizeText(contact);
+      if (normalizedContact.isEmpty || defaults.contains(normalizedContact)) {
+        continue;
+      }
+
+      final phoneNumber = _extractPhoneNumber(contact);
+      if (phoneNumber.isNotEmpty) {
+        destinationNumbers.add(phoneNumber);
+      }
     }
 
-    return _state.sosContacts.take(3).every((contact) {
-      final normalizedContact = _normalizeText(contact);
-      return normalizedContact.isNotEmpty &&
-          !defaults.contains(normalizedContact);
-    });
+    return destinationNumbers;
   }
 
   String _extractPhoneNumber(String contactText) {
