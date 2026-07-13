@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+android/build/
 
 # Local plugin copies used by this app
 local_plugins/**/example/
