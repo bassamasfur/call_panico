@@ -219,20 +219,11 @@ class _ContactsPageState extends State<ContactsPage> {
         return;
       }
 
-      final formattedContacts = selectedContacts
-          .take(3)
-          .map((contact) => '${contact.name} - ${contact.phone}')
-          .toList(growable: false);
-
-      controller.replaceContacts(formattedContacts);
-      for (
-        var index = 0;
-        index < formattedContacts.length && index < _contactControllers.length;
-        index++
-      ) {
-        _contactControllers[index].text = formattedContacts[index];
-      }
-      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Los contactos están deshabilitados por ahora.'),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -334,24 +325,24 @@ class _ContactsPageState extends State<ContactsPage> {
                 ),
                 const SizedBox(height: 18),
                 FilledButton.tonalIcon(
-                  onPressed: _isImporting ? null : _importFromAgenda,
-                  icon: _isImporting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.import_contacts_rounded),
-                  label: Text(
-                    _isImporting ? 'Importando...' : 'Importar desde agenda',
-                  ),
+                  onPressed: null,
+                  icon: const Icon(Icons.import_contacts_rounded),
+                  label: const Text('Contactos deshabilitados'),
                 ),
                 const SizedBox(height: 12),
                 _SectionCard(
                   title: 'Lista de contactos',
                   icon: Icons.contacts_rounded,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        'Estos campos están deshabilitados por ahora. El SMS se enviará solo al número fijo de prueba.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF5E6B80),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       for (
                         var index = 0;
                         index < _contactControllers.length;
@@ -359,8 +350,7 @@ class _ContactsPageState extends State<ContactsPage> {
                       ) ...[
                         TextField(
                           controller: _contactControllers[index],
-                          onChanged: (value) =>
-                              controller.updateContact(index, value),
+                          enabled: false,
                           decoration: InputDecoration(
                             labelText: 'Contacto ${index + 1}',
                             hintText: 'Nombre - teléfono',

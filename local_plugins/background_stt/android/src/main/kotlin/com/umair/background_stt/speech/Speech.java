@@ -11,6 +11,7 @@ import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.util.Log;
 
+import com.umair.background_stt.BackgroundSttPlugin;
 import com.umair.background_stt.SpeechListenService;
 
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ public class Speech {
     private long mStopListeningDelayInMs = 10000;
     private long mTransitionMinimumDelay = 1200;
     private long mLastActionTimestamp;
+    private long mLastVoiceActivityTimestamp;
     private List<String> mLastPartialResults = null;
 
     private final TextToSpeech.OnInitListener mTttsInitListener = new TextToSpeech.OnInitListener() {
@@ -80,6 +82,8 @@ public class Speech {
                 return;
             }
 
+            notifyListening();
+
             mDelayedStopListening.start(new DelayedOperation.Operation() {
                 @Override
                 public void onDelayedOperation() {
@@ -98,6 +102,9 @@ public class Speech {
             if(!SpeechListenService.Companion.isListening()){
                 return;
             }
+
+            notifyVoiceActivity(v);
+
             try {
                 if (mDelegate != null)
                     mDelegate.onSpeechRmsChanged(v);
@@ -167,6 +174,7 @@ public class Speech {
             }
 
             initSpeechRecognizer(mContext);
+            restartListeningIfNeeded();
         }
 
         @Override
@@ -176,6 +184,7 @@ public class Speech {
             }
             //Logger.error(LOG_TAG, "Speech recognition error", new SpeechRecognitionException(code));
             returnPartialResultsAndRecreateSpeechRecognizer();
+            restartListeningIfNeeded();
         }
 
         @Override
@@ -419,6 +428,38 @@ public class Speech {
 
         // recreate the speech recognizer
         initSpeechRecognizer(mContext);
+    }
+
+    private void restartListeningIfNeeded() {
+        if (!SpeechListenService.Companion.isListening() || mDelegate == null) {
+            return;
+        }
+
+        try {
+            startListening(mDelegate);
+        } catch (final SpeechRecognitionNotAvailable exc) {
+            Logger.error(Speech.class.getSimpleName(), exc.getMessage());
+        } catch (final GoogleVoiceTypingDisabledException exc) {
+            Logger.error(Speech.class.getSimpleName(), exc.getMessage());
+        }
+    }
+
+    private void notifyListening() {
+        BackgroundSttPlugin.emitSpeechResult("[LISTENING]", true);
+    }
+
+    private void notifyVoiceActivity(final float rmsDb) {
+        if (rmsDb < 2.5f) {
+            return;
+        }
+
+        final long now = new Date().getTime();
+        if (now - mLastVoiceActivityTimestamp < 700L) {
+            return;
+        }
+
+        mLastVoiceActivityTimestamp = now;
+        BackgroundSttPlugin.emitSpeechResult("[VOICE]", true);
     }
 
     /**

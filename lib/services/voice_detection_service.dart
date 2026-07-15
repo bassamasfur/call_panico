@@ -1,51 +1,46 @@
 import 'dart:async';
 
-import 'package:background_stt/background_stt.dart';
-import 'package:background_stt/speech_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class VoiceDetectionService {
-  VoiceDetectionService({
-    BackgroundStt? backgroundStt,
-    SpeechToText? speechToText,
-  }) : _backgroundStt = backgroundStt ?? BackgroundStt(),
-       _speechToText = speechToText ?? SpeechToText();
+  VoiceDetectionService({SpeechToText? speechToText})
+    : _speechToText = speechToText ?? SpeechToText();
 
-  final BackgroundStt _backgroundStt;
   final SpeechToText _speechToText;
 
-  StreamSubscription<SpeechResult>? _backgroundSubscription;
-  bool _backgroundStarted = false;
   bool _speechToTextInitialized = false;
 
   Future<void> startBackgroundListening({
     required void Function(String recognizedText, bool isPartial)
     onSpeechResult,
   }) async {
-    if (!_backgroundStarted) {
-      await _backgroundStt.startSpeechListenService;
-      _backgroundStarted = true;
+    final ready = await _ensureInitialized();
+    if (!ready) {
+      throw StateError('Speech recognition not available');
     }
 
-    await _backgroundSubscription?.cancel();
-    final subscription = _backgroundStt.getSpeechResults();
-    subscription.onData((data) {
-      final recognizedText = (data.result ?? '').trim();
-      if (recognizedText.isNotEmpty) {
-        onSpeechResult(recognizedText, data.isPartial ?? false);
-      }
-    });
-    _backgroundSubscription = subscription;
+    await _speechToText.stop();
+    await _speechToText.listen(
+      listenOptions: SpeechListenOptions(
+        partialResults: true,
+        localeId: 'es_ES',
+        listenFor: Duration(minutes: 10),
+        pauseFor: Duration(seconds: 20),
+        listenMode: ListenMode.confirmation,
+        cancelOnError: true,
+        onDevice: false,
+      ),
+      onResult: (result) {
+        final spokenText = result.recognizedWords.trim();
+        if (spokenText.isNotEmpty) {
+          onSpeechResult(spokenText, !result.finalResult);
+        }
+      },
+    );
   }
 
   Future<void> stopBackgroundListening() async {
-    await _backgroundSubscription?.cancel();
-    _backgroundSubscription = null;
-
-    if (_backgroundStarted) {
-      await _backgroundStt.stopSpeechListenService;
-      _backgroundStarted = false;
-    }
+    await _speechToText.stop();
   }
 
   Future<String?> listenForSpeech({
@@ -69,10 +64,15 @@ class VoiceDetectionService {
       completer.complete(value);
     }
 
-    _speechToText.listen(
-      listenFor: listenFor,
-      partialResults: true,
-      localeId: localeId,
+    await _speechToText.listen(
+      listenOptions: SpeechListenOptions(
+        partialResults: true,
+        localeId: localeId,
+        listenFor: listenFor,
+        cancelOnError: true,
+        onDevice: false,
+        listenMode: ListenMode.confirmation,
+      ),
       onResult: (result) {
         final spokenText = result.recognizedWords.trim();
         if (spokenText.isNotEmpty && result.finalResult) {

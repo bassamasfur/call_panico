@@ -78,6 +78,10 @@ class _HomePageState extends State<HomePage> {
                       _NoticeBanner(message: controller.statusMessage!),
                       const SizedBox(height: 16),
                     ],
+                    if (controller.lastHeardSpeech != null) ...[
+                      _HeardSpeechBanner(message: controller.lastHeardSpeech!),
+                      const SizedBox(height: 16),
+                    ],
                     _ActionCard(
                       title: 'Configuración SOS',
                       description:
@@ -136,6 +140,49 @@ class _NoticeBanner extends StatelessWidget {
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF35507B)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeardSpeechBanner extends StatelessWidget {
+  const _HeardSpeechBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F9F4),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFCFEBD7)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE4F5E9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.graphic_eq_rounded,
+              color: Color(0xFF2E8B57),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF2D5A3E)),
             ),
           ),
         ],

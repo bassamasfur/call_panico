@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.umair.background_stt.models.SpeechResult
 import com.umair.background_stt.speech.Logger
 import com.umair.background_stt.speech.Speech
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -141,6 +142,11 @@ class BackgroundSttPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Request
 
                 }
             })
+        }
+
+        @JvmStatic
+        fun emitSpeechResult(result: String, isPartial: Boolean) {
+            eventSink?.success(SpeechResult(result, isPartial).toString())
         }
 
         @JvmStatic

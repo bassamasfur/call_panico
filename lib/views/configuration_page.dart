@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/panic_home_controller.dart';
-import 'contacts_page.dart';
 
 class ConfigurationPage extends StatefulWidget {
   const ConfigurationPage({super.key, required this.controller});
@@ -140,7 +139,7 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                       title: 'Número fijo de prueba',
                       icon: Icons.phone_rounded,
                       child: Text(
-                        '+56959178040 · El SMS se enviará a este número con el texto "necesito ayuda".',
+                        '+56959178040 · El SMS se enviará a este número con el texto "ayuda ahora".',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFF5E6B80),
                         ),
@@ -148,36 +147,29 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                     ),
                     const SizedBox(height: 16),
                     _SectionCard(
-                      title: 'Contactos SOS',
+                      title: 'Contactos SOS deshabilitados',
                       icon: Icons.groups_rounded,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Edita los contactos en su propia pantalla.',
+                            'Por ahora no se usarán los 3 contactos. Solo se enviará el SMS al número fijo de prueba.',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: const Color(0xFF5E6B80),
                             ),
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'Estos contactos son de respaldo; el destino fijo de prueba es el número de arriba.',
+                            'Los contactos quedan deshabilitados temporalmente mientras validamos la frase clave y el SMS fijo.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: const Color(0xFF6F7E95),
                             ),
                           ),
                           const SizedBox(height: 12),
                           FilledButton.tonalIcon(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      ContactsPage(controller: controller),
-                                ),
-                              );
-                            },
+                            onPressed: null,
                             icon: const Icon(Icons.contacts_rounded),
-                            label: const Text('Editar contactos'),
+                            label: const Text('Editar contactos deshabilitado'),
                           ),
                         ],
                       ),

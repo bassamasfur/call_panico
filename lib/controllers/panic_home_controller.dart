@@ -33,6 +33,7 @@ class PanicHomeController extends ChangeNotifier {
   final VoiceDetectionService _voiceDetectionService;
   PanicAppModel _state;
   String? _statusMessage;
+  String? _lastHeardSpeech;
   DateTime? _lastSmsSentAt;
 
   bool get protectionEnabled => _state.protectionEnabled;
@@ -43,6 +44,7 @@ class PanicHomeController extends ChangeNotifier {
   List<String> get sosContacts => List.unmodifiable(_state.sosContacts);
   List<String> get alertHistory => List.unmodifiable(_state.alertHistory);
   String? get statusMessage => _statusMessage;
+  String? get lastHeardSpeech => _lastHeardSpeech;
   String get emergencyMessagePreview => _alertService.buildEmergencyMessage(
     emergencyPhrase: _state.emergencyPhrase,
     contacts: _state.sosContacts,
@@ -104,6 +106,7 @@ class PanicHomeController extends ChangeNotifier {
           protectionEnabled: false,
           voiceDetected: false,
         );
+        _lastHeardSpeech = null;
         _statusMessage = 'No se pudo iniciar la escucha en segundo plano.';
       }
     } else {
@@ -228,6 +231,9 @@ class PanicHomeController extends ChangeNotifier {
       return;
     }
 
+    _statusMessage = 'Micrófono activo. Esperando frase...';
+    notifyListeners();
+
     final recognizedText = await _voiceDetectionService.listenForSpeech();
     if (recognizedText == null) {
       _state = _state.copyWith(voiceDetected: false);
@@ -242,11 +248,12 @@ class PanicHomeController extends ChangeNotifier {
     if (detected) {
       await processRecognizedSpeech(recognizedText);
       return;
-    } else {
-      _state = _state.copyWith(voiceDetected: false);
-      _statusMessage = 'Se escuchó algo, pero no coincidió con la frase.';
     }
 
+    _state = _state.copyWith(voiceDetected: false);
+    _lastHeardSpeech = 'Se escuchó: "$recognizedText"';
+    _statusMessage = 'Se escuchó algo, pero no coincidió con la frase.';
+    debugPrint(_lastHeardSpeech);
     unawaited(_storageService.saveState(_state));
     notifyListeners();
   }
@@ -273,9 +280,25 @@ class PanicHomeController extends ChangeNotifier {
     String recognizedText,
     bool isPartial,
   ) async {
-    if (!_state.protectionEnabled || recognizedText.trim().isEmpty) {
+    final trimmedText = recognizedText.trim();
+    if (!_state.protectionEnabled || trimmedText.isEmpty) {
       return;
     }
+
+    if (trimmedText == '[LISTENING]') {
+      _lastHeardSpeech = 'Micrófono activo. Escuchando audio...';
+      _statusMessage = _lastHeardSpeech;
+      debugPrint(_lastHeardSpeech);
+      notifyListeners();
+      return;
+    }
+
+    _lastHeardSpeech = isPartial
+        ? 'Escuchando... capté: "$trimmedText"'
+        : 'Escuché: "$trimmedText"';
+    _statusMessage = _lastHeardSpeech;
+    debugPrint(_lastHeardSpeech);
+    notifyListeners();
 
     await processRecognizedSpeech(recognizedText);
   }
@@ -343,36 +366,7 @@ class PanicHomeController extends ChangeNotifier {
   }
 
   List<String> _buildSmsDestinationNumbers() {
-    final defaults = PanicAppModel.defaultSosContacts
-        .map(_normalizeText)
-        .toSet();
-
-    final destinationNumbers = <String>[PanicAlertService.emergencyPhoneNumber];
-
-    for (final contact in _state.sosContacts.take(3)) {
-      final normalizedContact = _normalizeText(contact);
-      if (normalizedContact.isEmpty || defaults.contains(normalizedContact)) {
-        continue;
-      }
-
-      final phoneNumber = _extractPhoneNumber(contact);
-      if (phoneNumber.isNotEmpty) {
-        destinationNumbers.add(phoneNumber);
-      }
-    }
-
-    return destinationNumbers;
-  }
-
-  String _extractPhoneNumber(String contactText) {
-    final trimmed = contactText.trim();
-    if (trimmed.isEmpty) {
-      return '';
-    }
-
-    final parts = trimmed.split(' - ');
-    final phoneText = parts.length > 1 ? parts.last : trimmed;
-    return phoneText.replaceAll(RegExp(r'[^\d+]'), '');
+    return <String>[PanicAlertService.emergencyPhoneNumber];
   }
 
   String _sanitizePhrase(String value) {
