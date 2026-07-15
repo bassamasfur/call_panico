@@ -17,33 +17,13 @@ class BackgroundStt {
       _speechListenerController.stream;
 
   static StreamController<SpeechResult> _speechListenerController =
-      StreamController<SpeechResult>();
+      StreamController<SpeechResult>.broadcast();
 
   static Stream<ConfirmationResult> get confirmationResult =>
       _confirmationListenerController.stream;
 
   static StreamController<ConfirmationResult> _confirmationListenerController =
-      StreamController<ConfirmationResult>();
-
-  StreamSubscription<SpeechResult> speechSubscription =
-      _speechListenerController.stream.asBroadcastStream().listen(
-          (data) {
-            print("DataReceived: " + data.result!);
-          },
-          onDone: () {},
-          onError: (error) {
-            print("Some Error");
-          });
-
-  StreamSubscription<ConfirmationResult> confirmationSubscription =
-      _confirmationListenerController.stream.asBroadcastStream().listen(
-          (data) {
-            print("DataReceived: " + data.confirmedResult!);
-          },
-          onDone: () {},
-          onError: (error) {
-            print("Some Error");
-          });
+      StreamController<ConfirmationResult>.broadcast();
 
   Future<String?> get startSpeechListenService async {
     final String? result = await _channel.invokeMethod('startService');
@@ -120,12 +100,14 @@ class BackgroundStt {
       if (event.toString().contains("isPartial") &&
           !event.toString().contains("confirmationIntent")) {
         Map result = jsonDecode(event);
-        _speechResultSaved = SpeechResult.fromJson(result as Map<String, dynamic>);
+        _speechResultSaved =
+            SpeechResult.fromJson(result as Map<String, dynamic>);
         _speechListenerController.add(_speechResultSaved);
       } else if (!event.toString().contains("isPartial") &&
           event.toString().contains("confirmationIntent")) {
         Map result = jsonDecode(event);
-        _confirmationResultSaved = ConfirmationResult.fromJson(result as Map<String, dynamic>);
+        _confirmationResultSaved =
+            ConfirmationResult.fromJson(result as Map<String, dynamic>);
         if (_confirmationResultSaved.confirmationIntent != null &&
             _confirmationResultSaved.confirmationIntent!.isNotEmpty) {
           _confirmationListenerController.add(_confirmationResultSaved);
@@ -135,17 +117,14 @@ class BackgroundStt {
   }
 
   StreamSubscription<SpeechResult> getSpeechResults() {
-    return speechSubscription;
+    return _speechListenerController.stream.listen((data) {});
   }
 
   StreamSubscription<ConfirmationResult> getConfirmationResults() {
-    return confirmationSubscription;
+    return _confirmationListenerController.stream.listen((data) {});
   }
 
   void _stopSpeechListener() {
-    _speechListenerController.close();
-    _confirmationListenerController.close();
-    speechSubscription.cancel();
-    confirmationSubscription.cancel();
+    // Keep the Dart stream controllers alive so listening can be started again.
   }
 }
