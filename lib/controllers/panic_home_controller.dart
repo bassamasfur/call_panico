@@ -273,7 +273,7 @@ class PanicHomeController extends ChangeNotifier {
     String recognizedText,
     bool isPartial,
   ) async {
-    if (!_state.protectionEnabled || isPartial) {
+    if (!_state.protectionEnabled || recognizedText.trim().isEmpty) {
       return;
     }
 
