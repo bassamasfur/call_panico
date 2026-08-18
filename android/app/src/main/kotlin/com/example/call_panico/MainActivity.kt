@@ -1,4 +1,4 @@
-package com.example.call_panico
+package com.bassamasfur.callpanico
 
 import io.flutter.embedding.android.FlutterActivity
 
