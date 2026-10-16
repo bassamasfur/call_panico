@@ -39,6 +39,10 @@ local_plugins/**/example/
 local_plugins/**/coverage/
 local_plugins/**/.dart_tool/
 local_plugins/**/build/
+local_plugins/**/android/.gradle/
+
+# Untracked PDFs dropped in the web icons folder
+web/icons/*.pdf
 
 # Symbolication related
 app.*.symbols
